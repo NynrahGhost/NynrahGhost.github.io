@@ -1,21 +1,98 @@
+@media (min-width: 768px) and (max-width: 1024px) {
+  .panel-footer {
+    font-size: 10px;
+  }
+}
+
 /* Remove the navbar's default rounded borders and increase the bottom margin */
 .navbar {
   margin-bottom: 50px;
   border-radius: 0;
 }
 
+.navbar ul {
+  margin-bottom: 0px !important;
+}
+
 /* Remove the jumbotron's default bottom margin */
 .jumbotron {
   margin-bottom: 0;
+  background: linear-gradient(45deg, #1e5799 0%,#ff01ff 100%);
+  font-style: italic;
 }
 
 /* Add a gray background color and some padding to the footer */
 footer {
-  background-color: #f2f2f2;
+  background: #222 !important;
   padding: 25px;
+  color: #777;
+}
+
+.background-gradient {
+  background: linear-gradient(to bottom, #004089 0%,#4b004b 100%);
+}
+
+.btn-primary, .btn-primary:hover, .btn-primary:active, .btn-primary:visited {
+  background-color: #820082 !important;
+}
+
+.panel-heading {
+  height: 40px;
+  position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: linear-gradient(to bottom, #1e5799 0%,#ff01ff 100%);
+}
+
+.panel-heading::before {
+  background: linear-gradient(45deg, #1e5799 0%,#ff01ff 100%);
+}
+
+.panel-body {
+  height: 300px;
+  //margin-bottom: 0px !important;
 }
 
 .product-image {
   max-width: 100%;
-  height: auto;
+  max-height: 100%;
+}
+
+.product-price {
+  border-radius: 15px 60px;
+  background: #ffaa00;
+  padding: 8px;
+  height: 30px;
+}
+
+.product-special-price {
+  color: #bb0000;
+}
+
+.category-list {
+  position:fixed;
+  z-index: 300;
+}
+
+.category-description {
+  color: #555555;
+  font-size:80%;
+}
+
+.product-background {
+  border-radius: 5px;
+  background: #ffffff;
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+.product-description {
+  max-height: 300px;
+  border-radius: 15px;
+  background: #9e63ff;
+  padding: 10px;
+  margin-left: -10px;
+  margin-right: -10px;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
