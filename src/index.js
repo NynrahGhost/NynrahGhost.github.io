@@ -11,6 +11,7 @@ console.log(`The time is ${new Date()}`);
 $( document ).ready(function() {
     $('#AllProducts').click(function(){ GetAllProducts(); return false; });
     GetAllProducts();
+    $('.cart').click(function(){ Cart(); return false; });
 });
 
 let cart = new Map();
@@ -36,13 +37,19 @@ function GetCategory(element) {
                     prices += '<span style="text-decoration: line-through;">' + price + '</span> <span class="product-price product-special-price"><b>' + special_price;
                 }
                 prices += '<span style="font-size:80%;"> грн.</span></b></span>'
-                $('.product-grid').append($(`<div class="col-sm-4 product" data-product-id="${id}"><div class="panel panel-primary">
-            <div class="panel-heading">${name}</div>
-            <div class="panel panel-body h-50">
-                <img src="${image_url}" alt="${name}" class="img-fluid product-image center-block"></div>
-            <div class="panel-footer text-right" >${prices} <button type="button" class="btn btn-success">
-                <span class="glyphicon glyphicon-shopping-cart"></span></button></div>
-            </div></div>`));
+                $('.product-grid').append($(`<div class="col-sm-4 product" data-product-id="${id}">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">${name}</div>
+                        <div class="panel panel-body h-50">
+                            <img src="${image_url}" alt="${name}" class="img-fluid product-image center-block">
+                        </div>
+                        <div class="panel-footer text-right" >${prices} 
+                            <button type="button" class="btn btn-success">
+                                <span class="glyphicon glyphicon-shopping-cart"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>`));
             });
             $('.product').click(function(){ GetProduct(this); return false; });
             $('.product button').click(function(){ ProductToCart(this); return false; });
@@ -58,7 +65,7 @@ function GetCategory(element) {
 }
 
 jQuery.ajax({
-    url: 'http://nit.tron.net.ua/api/category/list',
+    url: 'https://nit.tron.net.ua/api/category/list',
     method: 'get',
     dataType: 'json',
     success: function(json){
@@ -99,13 +106,19 @@ function GetAllProducts() {
                     prices += '<span style="text-decoration: line-through;">' + price + '</span> <span class="product-price product-special-price"><b>' + special_price;
                 }
                 prices += '<span style="font-size:80%;"> грн.</span></b></span>';
-                $('.product-grid').append($(`<div class="col-sm-4 product" data-product-id="${id}"><div class="panel panel-primary">
-            <div class="panel-heading">${name}</div>
-            <div class="panel panel-body h-50">
-                <img src="${image_url}" alt="${name}" class="img-fluid product-image center-block"></div>
-            <div class="panel-footer text-right" >${prices} <button type="button" class="btn btn-success">
-                <span class="glyphicon glyphicon-shopping-cart"></span></button></div>
-            </div></div>`));
+                $('.product-grid').append($(`<div class="col-sm-4 product" data-product-id="${id}">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">${name}</div>
+                        <div class="panel panel-body h-50">
+                            <img src="${image_url}" alt="${name}" class="img-fluid product-image center-block">
+                        </div>
+                        <div class="panel-footer text-right" >${prices} 
+                            <button type="button" class="btn btn-success">
+                                <span class="glyphicon glyphicon-shopping-cart"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>`));
             });
             console.log('Added to grid');
             $('.product').click(function(){ GetProduct(this); return false; });
@@ -124,7 +137,7 @@ function GetProduct(element) {
     $('.product-grid').empty();
 
     jQuery.ajax({
-        url: 'http://nit.tron.net.ua/api/product/' + $(element).attr("data-product-id"),
+        url: 'https://nit.tron.net.ua/api/product/' + $(element).attr("data-product-id"),
         method: 'get',
         dataType: 'json',
         success: function(json){
@@ -148,9 +161,16 @@ function GetProduct(element) {
             }
 
             $('.product-grid').append($(`<div class="row product-background">
-                <div><img src="${json.image_url}" alt="${json.name}" class="col-sm-6 img-fluid product-image center-block"></div>
-                <div class="col-sm-6 scrollbar-near-moon product-description">${desc}</div><br/><div class="h-50">${prices} <button type="button" class="btn btn-success">
-                <span class="glyphicon glyphicon-shopping-cart"></span></button></div></div><`)
+                <div>
+                    <img src="${json.image_url}" alt="${json.name}" class="col-sm-6 img-fluid product-image center-block">
+                </div>
+                <div class="col-sm-6 scrollbar-near-moon product-description">${desc}</div><br/>
+                <div class="h-50">${prices} 
+                    <button type="button" class="btn btn-success">
+                        <span class="glyphicon glyphicon-shopping-cart"></span>
+                    </button>
+                </div>
+            </div>`)
             );
             console.log('Added to grid');
         },
@@ -174,5 +194,38 @@ function ProductToCart(element) {
 
 function Cart() {
 
+    $('.product-grid').empty();
+
+    for(let [k, v] of cart) {
+
+        jQuery.ajax({
+            url: 'https://nit.tron.net.ua/api/product/' + k,
+            method: 'get',
+            dataType: 'json',
+            success: function(json){
+                console.log('Loaded via AJAX!');
+                console.table(json);
+
+                $('.product-grid').append($(`<div class="row product-background">
+                <div>
+                    <img src="${json.image_url}" alt="${json.name}" class="col-sm-6 img-fluid product-image center-block">
+                </div>
+                <div class="col-sm-6 scrollbar-near-moon product-description">${desc}</div><br/>
+                <div class="h-50">${prices} 
+                    <button type="button" class="btn btn-success">
+                        <span class="glyphicon glyphicon-shopping-cart"></span>
+                    </button>
+                </div>
+            </div>`)
+                );
+                console.log('Added to grid');
+            },
+
+            error: function(xhr){
+                alert("An error occured: " + xhr.status + " " + xhr.statusText);
+            },
+        });
+
+    }
 
 }
