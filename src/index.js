@@ -11,10 +11,16 @@ console.log(`The time is ${new Date()}`);
 $( document ).ready(function() {
     $('#AllProducts').click(function(){ GetAllProducts(); return false; });
     GetAllProducts();
+    $("#cartPopup").hide();
+    $("#cartRestrict").hide();
     $('.cart').click(function(){ Cart(); return false; });
+    $(document).on('click', '.button-remove',function () {CartRemove(this); return false;});
+    $(document).on('click', '.button-minus',function () {CartMinus(this); return false;});
+    $(document).on('click', '.button-plus',function () {CartPlus(this); return false;});
 });
 
 let cart = new Map();
+let cartMoney = new Map();
 
 function GetCategory(element) {
 
@@ -109,7 +115,7 @@ function GetAllProducts() {
                 $('.product-grid').append($(`<div class="col-sm-4 product" data-product-id="${id}">
                     <div class="panel panel-primary">
                         <div class="panel-heading">${name}</div>
-                        <div class="panel panel-body h-50">
+                        <div class="panel panel-body">
                             <img src="${image_url}" alt="${name}" class="img-fluid product-image center-block">
                         </div>
                         <div class="panel-footer text-right" >${prices} 
@@ -160,19 +166,22 @@ function GetProduct(element) {
                 desc = desc.replace(link, `<a href="${link}">${link}</a>`);
             }
 
-            $('.product-grid').append($(`<div class="row product-background">
+            $('.product-grid').append($(`<div class="row product product-background">
                 <div>
-                    <img src="${json.image_url}" alt="${json.name}" class="col-sm-6 img-fluid product-image center-block">
+                    <img src="${json.image_url}" alt="${json.name}" class="col-sm-6 img-fluid cart-product-image center-block">
                 </div>
-                <div class="col-sm-6 scrollbar-near-moon product-description">${desc}</div><br/>
-                <div class="h-50">${prices} 
-                    <button type="button" class="btn btn-success">
-                        <span class="glyphicon glyphicon-shopping-cart"></span>
-                    </button>
+                <div>
+                    <div class="scrollbar-near-moon product-description">${desc}<br/></div>
+                    <div class="h-50">${prices} 
+                        <button type="button" class="btn btn-success">
+                            <span class="glyphicon glyphicon-shopping-cart"></span>
+                        </button>
+                    </div>
                 </div>
             </div>`)
             );
             console.log('Added to grid');
+            $('.product button').click(function(){ ProductToCart(this); return false; });
         },
 
         error: function(xhr){
@@ -183,21 +192,41 @@ function GetProduct(element) {
 
 function ProductToCart(element) {
     let id = $(element.parentElement.parentElement.parentElement).attr("data-product-id");
+    $("#cartPopup").show();
+    setTimeout(function(){
+        $("#cartPopup").hide();
+    }, 2000);
+
     if(cart.has(id)) {
         cart.set(id, cart.get(id) + 1);
     } else {
+        //alert($(element.parentElement.parentElement.parentElement).children('.product-price').first().text());
         cart.set(id, 1);
+        //cartMoney.set(id, $(element.parentElement.parentElement.parentElement).children('.product-price').text());
     }
-    alert("Added!" + id + " " + cart.get(id));
-    alert(cart);
+    //alert("Added!" + id + " " + cart.get(id));
 }
 
 function Cart() {
 
+    if(cart.size == 0) {
+        $("#cartRestrict").show();
+        setTimeout(function(){
+            $("#cartRestrict").hide();
+        }, 2000);
+        return;
+    }
     $('.product-grid').empty();
+
+    $('.product-grid').append($(`<div class="cart-product-description">`));
+
+    let overallPrice = 0;
 
     for(let [k, v] of cart) {
 
+        if(v == 0) {
+            continue;
+        }
         jQuery.ajax({
             url: 'https://nit.tron.net.ua/api/product/' + k,
             method: 'get',
@@ -206,16 +235,28 @@ function Cart() {
                 console.log('Loaded via AJAX!');
                 console.table(json);
 
-                $('.product-grid').append($(`<div class="row product-background">
-                <div>
-                    <img src="${json.image_url}" alt="${json.name}" class="col-sm-6 img-fluid product-image center-block">
+                let price = 0;
+                if(json.special_price == null) {
+                    price = json.price;
+                } else {
+                    price = json.special_price;
+                }
+
+                cartMoney.set(k, price);
+
+                price *= v;
+                overallPrice += price;
+
+                $('.cart-product-description').append($(`<div class="row product-background cart-product" cart-product-id="${k}">
+                <div class="cart-image">
+                    <img src="${json.image_url}" alt="${json.name}" class="col-sm-6 img-fluid cart-product-image center-block">
                 </div>
-                <div class="col-sm-6 scrollbar-near-moon product-description">${desc}</div><br/>
-                <div class="h-50">${prices} 
-                    <button type="button" class="btn btn-success">
-                        <span class="glyphicon glyphicon-shopping-cart"></span>
-                    </button>
-                </div>
+                    <br/>
+                <div class="center-block"><span class="product-price"><b id="product-${k}">${price}</b></span>
+                                    <button type="button" class="btn btn-danger button-remove"><i class="glyphicon glyphicon-remove-sign"></i></button>
+                                    <button type="button" class="btn btn-warning button-minus"><i class="glyphicon glyphicon-minus-sign"></i></button>
+                                    <button id="${k}" type="button" class="btn btn-info">${v}</button>
+                                    <button type="button" class="btn btn-primary button-plus"><i class="glyphicon glyphicon-plus-sign"></i></button></div>
             </div>`)
                 );
                 console.log('Added to grid');
@@ -225,7 +266,141 @@ function Cart() {
                 alert("An error occured: " + xhr.status + " " + xhr.statusText);
             },
         });
-
     }
+
+    $('.product-grid').append($(`<div class="cart-product">
+        <button type="button" class="btn btn-danger button-remove" id="button-clear"><i class="glyphicon glyphicon-trash"></i></button>
+        <span class="product-price" id="overall-price"><b>${overallPrice}</b></span>
+    </div><bt/>`));
+
+    $('.product-grid').append($(`</div class="product-description"><br/>`));
+    $('.product-grid').append($(`
+            <div class="bootstrap-iso"><br/>
+ <div class="container-fluid">
+  <div class="row">
+   <div class="col-md-6 col-sm-6 col-xs-12">
+    <form method="post">
+     <div class="form-group ">
+      <label class="control-label " for="form-name">
+       Name
+      </label>
+      <input class="form-control" id="form-name" name="form-name" type="text"/>
+     </div>
+     <div class="form-group ">
+      <label class="control-label " for="form-email">
+       Email
+      </label>
+      <input class="form-control" id="form-email" name="form-email" type="text"/>
+      <span class="help-block" id="hint_form-email">
+      </span>
+     </div>
+     <div class="form-group ">
+      <label class="control-label " for="form-phone">
+       Phone number
+      </label>
+      <input class="form-control" id="form-phone" name="form-phone" type="text"/>
+     </div>
+     <div class="form-group">
+      <div>
+       <button class="btn btn-primary submit-button" name="submit" type="submit">
+        Submit
+       </button>
+      </div>
+     </div>
+    </form>
+   </div>
+    <div class="col-md-6 col-sm-6 col-xs-12">
+        
+    </div>
+  </div>
+ </div>
+</div>
+    `));
+
+    $('#button-clear').click(function(){ CartClear(); return false; });
+    $('.submit-button').click(function(){ Submit(); return false; });
+}
+
+function Submit() {
+
+    event.preventDefault();
+
+    let name = $('#form-name').val();
+    let email = $('#form-email').val();
+    let phone = $('#form-phone').val();
+
+    let data = `name=${name}&email=${email}&phone=${phone}`;
+
+    for(let [k, v] of cart) {
+        if(v == 0) {
+            continue;
+        }
+        data += `&products[${k}]=${v}`;
+    }
+
+    data += "&token=kqbbSihLAg-keWJGW6ea";
+    $.ajax({
+        url: 'https://nit.tron.net.ua/api/order/add',
+        method: 'post',
+        data: data,
+        dataType: 'json',
+        success: function(json) {
+            CartClear();
+            console.log(json);
+        },
+        error: function(json) {
+            console.log(json);
+        },
+    });
+}
+
+function CartRemove(element) {
+    let id = $(element.parentElement.parentElement).attr("cart-product-id");
+    cart.delete(id);
+    cartMoney.delete(id);
+    $(element.parentElement.parentElement).remove()
+    UpdateCart()
+}
+
+function CartMinus(element) {
+    let id = $(element.parentElement.parentElement).attr("cart-product-id");
+    let val = parseInt($('#' + id).text());
+    if(val <= 1) {
+        CartRemove(element);
+    }
+    val--;
+    $('#' + id).text(val);
+    cart.set(id, val);
+    UpdateCart()
+}
+
+function CartPlus(element) {
+    let id = $(element.parentElement.parentElement).attr("cart-product-id");
+    let val = parseInt($('#' + id).text());
+    val++;
+    $('#' + id).text(val);
+    cart.set(id, val);
+    UpdateCart()
+}
+
+function CartClear() {
+    $('.cart-product').remove();
+    UpdateCart()
+}
+
+function UpdateCart() {
+    let overallPrice = 0;
+    for (let [k, v] of cartMoney) {
+        overallPrice += cart.get(k) * v;
+        $('#product-' + k).text(cart.get(k) * v);
+    }
+    $('#overall-price').text(overallPrice);
+}
+
+function popUpAlert(element) {
+    element.classList.toggle("show");
+}
+
+function popUpCart(element) {
 
 }
