@@ -12,6 +12,7 @@ $( document ).ready(function() {
     $('#AllProducts').click(function(){ GetAllProducts(); return false; });
     GetAllProducts();
     $("#cartPopup").hide();
+    $("#cartSuccess").hide();
     $("#cartRestrict").hide();
     $('.cart').click(function(){ Cart(); return false; });
     $(document).on('click', '.button-remove',function () {CartRemove(this); return false;});
@@ -166,11 +167,12 @@ function GetProduct(element) {
                 desc = desc.replace(link, `<a href="${link}">${link}</a>`);
             }
 
-            $('.product-grid').append($(`<div class="row product product-background">
-                <div>
-                    <img src="${json.image_url}" alt="${json.name}" class="col-sm-6 img-fluid cart-product-image center-block">
+            $('.product-grid').append($(`<div class="row product product-background" data-product-id="${json.id}">
+                <div class="cart-product-image col-sm-6">
+                    <b>${json.name}</b><br/>
+                    <img src="${json.image_url}" alt="${json.name}" class="img-fluid cart-product-image">
                 </div>
-                <div>
+                <div class="col-sm-6">
                     <div class="scrollbar-near-moon product-description">${desc}<br/></div>
                     <div class="h-50">${prices} 
                         <button type="button" class="btn btn-success">
@@ -220,8 +222,6 @@ function Cart() {
 
     $('.product-grid').append($(`<div class="cart-product-description">`));
 
-    let overallPrice = 0;
-
     for(let [k, v] of cart) {
 
         if(v == 0) {
@@ -244,21 +244,20 @@ function Cart() {
 
                 cartMoney.set(k, price);
 
-                price *= v;
-                overallPrice += price;
-
                 $('.cart-product-description').append($(`<div class="row product-background cart-product" cart-product-id="${k}">
-                <div class="cart-image">
-                    <img src="${json.image_url}" alt="${json.name}" class="col-sm-6 img-fluid cart-product-image center-block">
+                <div class="cart-product-image col-sm-6">
+                    <b>${json.name}</b><br/>
+                    <img src="${json.image_url}" alt="${json.name}" class="img-fluid cart-product-image">
                 </div>
                     <br/>
-                <div class="center-block"><span class="product-price"><b id="product-${k}">${price}</b></span>
+                <div class="col-sm-6 cart-buttons"><span class="product-price"><b id="product-${k}">${price}<span style="font-size:80%;"> грн.</span></b></span>
                                     <button type="button" class="btn btn-danger button-remove"><i class="glyphicon glyphicon-remove-sign"></i></button>
                                     <button type="button" class="btn btn-warning button-minus"><i class="glyphicon glyphicon-minus-sign"></i></button>
                                     <button id="${k}" type="button" class="btn btn-info">${v}</button>
                                     <button type="button" class="btn btn-primary button-plus"><i class="glyphicon glyphicon-plus-sign"></i></button></div>
             </div>`)
                 );
+                UpdateCart();
                 console.log('Added to grid');
             },
 
@@ -268,14 +267,15 @@ function Cart() {
         });
     }
 
-    $('.product-grid').append($(`<div class="cart-product">
+    $('.product-grid').append($(`<br/><div class="cart-product cart-middle col-12">
         <button type="button" class="btn btn-danger button-remove" id="button-clear"><i class="glyphicon glyphicon-trash"></i></button>
-        <span class="product-price" id="overall-price"><b>${overallPrice}</b></span>
+        <span class="product-price"><b id="overall-price"></b></span>
     </div><bt/>`));
 
     $('.product-grid').append($(`</div class="product-description"><br/>`));
     $('.product-grid').append($(`
             <div class="bootstrap-iso"><br/>
+            <div class="alert alert-danger" id="error-popup"></div>
  <div class="container-fluid">
   <div class="row">
    <div class="col-md-6 col-sm-6 col-xs-12">
@@ -319,10 +319,13 @@ function Cart() {
 
     $('#button-clear').click(function(){ CartClear(); return false; });
     $('.submit-button').click(function(){ Submit(); return false; });
+    UpdateCart();
+    $('#error-popup').hide();
 }
 
 function Submit() {
 
+    $('#error-popup').hide();
     event.preventDefault();
 
     let name = $('#form-name').val();
@@ -345,7 +348,21 @@ function Submit() {
         data: data,
         dataType: 'json',
         success: function(json) {
-            CartClear();
+            if(json.status == "error") {
+                let arr = Object.values(json.errors);
+                let msg = "<strong>Error!</strong>";
+                for(let i = 0; i < arr.length; i++) {
+                    msg += " " + arr[i];
+                }
+                $('#error-popup').show();
+                $('#error-popup').html(msg);
+            }else {
+                CartClear();
+                $("#cartSuccess").show();
+                setTimeout(function(){
+                    $("#cartSuccess").hide();
+                }, 2000);
+            }
             console.log(json);
         },
         error: function(json) {
@@ -385,6 +402,9 @@ function CartPlus(element) {
 
 function CartClear() {
     $('.cart-product').remove();
+    cart.clear();
+    cartMoney.clear();
+    GetAllProducts();
     UpdateCart()
 }
 
@@ -392,9 +412,8 @@ function UpdateCart() {
     let overallPrice = 0;
     for (let [k, v] of cartMoney) {
         overallPrice += cart.get(k) * v;
-        $('#product-' + k).text(cart.get(k) * v);
     }
-    $('#overall-price').text(overallPrice);
+    $('#overall-price').html(overallPrice + '<span style="font-size:80%;"> грн.</span>');
 }
 
 function popUpAlert(element) {
